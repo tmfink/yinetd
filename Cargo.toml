@@ -3,5 +3,7 @@ name = "yinetd"
 version = "0.0.0"
 authors = ["Travis Finkenauer <tmfinken@gmail.com>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
+description = "inetd implementation"
 
 [dependencies]
