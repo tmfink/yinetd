@@ -1,22 +1,33 @@
-use std::ffi::OsString;
+use std::path::PathBuf;
 
 use clap::Clap;
 use log::*;
 
+mod config;
+mod error;
 mod num;
+
+pub use error::{Error, Result};
 
 const LOG_ENV: &str = "YINETD_LOG";
 
 #[derive(Clap)]
 struct Opts {
+    /// Path to config file
     #[clap(short = 'c', long = "config")]
-    config_path: Option<OsString>,
+    config_path: Option<PathBuf>,
 
+    /// Increase verbosity
     #[clap(short, long, parse(from_occurrences))]
     verbose: i32,
 
+    /// Decrease verbosity
     #[clap(short, long, parse(from_occurrences))]
     quiet: i32,
+
+    /// Exit after checking validity of config file
+    #[clap(long = "check")]
+    check_config: bool,
 }
 
 fn init_logging(verbosity: i32) {
@@ -31,10 +42,20 @@ fn init_logging(verbosity: i32) {
     builder.init();
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::parse();
-
-    println!("config: {:?}", opts.config_path);
-
     init_logging(opts.verbose - opts.quiet + 2);
+
+    let config_path = &opts.config_path.unwrap();
+    info!("config: {:?}", &config_path);
+    crate::config::parse_config_file(&config_path)?;
+
+    if opts.check_config {
+        info!("Exiting after checking config");
+        return Ok(());
+    }
+
+    // todo(tmfink): start services
+
+    Ok(())
 }
