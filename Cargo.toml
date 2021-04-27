@@ -5,6 +5,8 @@ authors = ["Travis Finkenauer <tmfinken@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "inetd implementation"
+repository = "https://github.com/tmfink/yinetd"
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0"
