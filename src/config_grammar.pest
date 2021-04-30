@@ -1,0 +1,35 @@
+/*
+config format, based on xinetd.conf(5):
+
+# comment
+service SERVICE_NAME
+{
+    # comment
+    ATTRIBUTE ASSIGN_OP VALUE1 VALUE2 ...
+    ...
+}
+ */
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+non_newline = { !NEWLINE ~ ANY }
+COMMENT = _{ "#" ~ non_newline* ~ NEWLINE }
+
+name_char = { ASCII_ALPHANUMERIC | "." | "_" | "/" | "-" }
+name = @{ name_char+ }
+value_char = {
+    !NEWLINE ~ ANY
+}
+value = @{ value_char* }
+
+property = { name ~ "=" ~ value }
+body = { "{" ~ property* ~ "}" }
+
+service = { "service" ~ name ~ body }
+default = { "default" ~ body }
+
+file = {
+    SOI ~
+    default? ~
+    service* ~
+    EOI
+}

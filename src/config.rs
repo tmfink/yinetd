@@ -1,33 +1,47 @@
+// pest creates enums in all-caps
+#![allow(clippy::upper_case_acronyms)]
+
 use std::{
-    ffi::OsString,
     fs::{self, File},
     io::{prelude::*, BufReader},
     path::Path,
 };
 
+use log::trace;
+use pest::{Parser, Token};
+use pest_derive::Parser;
+
 use crate::Result;
 
-/*
-config format, based on xinetd.conf(5):
+#[derive(Parser)]
+#[grammar = "config_grammar.pest"]
+struct ConfigParser;
 
-service SERVICE_NAME
-{
-    ATTRIBUTE ASSIGN_OP VALUE1 VALUE2 ...
-    ...
-}
- */
-
+#[derive(Debug)]
 pub struct Config {
     pub services: Vec<Service>,
 }
 
 #[derive(Debug)]
 pub struct Service {
-    args: Vec<OsString>,
-    port: u16,
+    pub name: String,
+    pub args: Vec<String>,
+    pub port: u16,
 }
 
 fn parse_config_str(config: &str) -> Result<Config> {
+    let parser = ConfigParser::parse(Rule::file, config)?;
+    for token in parser.tokens() {
+        match &token {
+            Token::Start { rule, pos } => {
+                trace!("found token \"{:?}\" at {:?}", rule, pos);
+            }
+            Token::End {
+                rule: _rule,
+                pos: _pos,
+            } => {}
+        }
+    }
     unimplemented!()
 }
 
