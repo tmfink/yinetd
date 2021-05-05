@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use clap::Clap;
 use log::*;
 
+use yinetd::parse::parse_config_file;
+
 const LOG_ENV: &str = "YINETD_LOG";
 
 const DEFAULT_CONFIG_PATHS: &[&str] = &["/etc/yinetd.conf"];
@@ -63,7 +65,7 @@ fn main() -> anyhow::Result<()> {
 
     let config_path = config_path(&opts)?;
     info!("config: {:?}", &config_path);
-    yinetd::config::parse_config_file(&config_path)?;
+    parse_config_file(&config_path)?;
 
     if opts.check_config {
         info!("Exiting after checking config");
