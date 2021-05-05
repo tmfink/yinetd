@@ -12,7 +12,8 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use crate::{
-    config::{Config, Service, ServiceOption},
+    config::Config,
+    service::{Service, ServiceOption},
     Result,
 };
 
