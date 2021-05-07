@@ -1,10 +1,13 @@
-use std::str::FromStr;
+use std::net::IpAddr;
 
 use pest::error::Error as PestError;
 use pest::error::ErrorVariant as PestErrorVariant;
 use pest::iterators::Pair;
 
-use crate::parse::Rule;
+use crate::{
+    config_types::{ProgArgs, SocketType},
+    parse::Rule,
+};
 
 /// Define two structs that will hold config:
 /// - Required fields will be stored as T; optional fields in an `Option<T>`
@@ -138,17 +141,6 @@ macro_rules! define_config {
     };
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProgArgs(Vec<String>);
-
-impl FromStr for ProgArgs {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let args: Vec<String> = s.split_whitespace().map(|s| s.to_string()).collect();
-        Ok(Self(args))
-    }
-}
-
 impl ServiceOption {
     pub fn update_from_body_pair(&mut self, body_pair: Pair<Rule>) -> crate::Result<()> {
         assert_eq!(body_pair.as_rule(), Rule::body);
@@ -177,11 +169,24 @@ define_config!(
     #[derive(Debug, Clone, Eq, PartialEq)]
     pub struct Service, ServiceOption;
     required {
+        /// Server binary
         pub server: String,
+
+        /// TCP/UDP Port
         pub port: u16,
     }
     optional {
+        /// User ID to run the process
         pub uid: u32,
+
+        /// Program arguments
         pub server_args: ProgArgs,
+
+        /// IP address to listen on
+        /// Defaults to all if not specified
+        pub listen_address: IpAddr,
+
+        /// Socket type (i.e., TCP vs. UDP)
+        pub socket_type: SocketType,
     }
 );

@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+
 use super::*;
 
 const PASS_NO_DEFAULT: &str = r#"
@@ -194,6 +196,16 @@ service service_a
 }
 "#;
 
+static DEFAULT_SERVICE: Lazy<Service> = Lazy::new(|| Service {
+    name: "".to_string(),
+    server: "".to_string(),
+    port: 0,
+    uid: None,
+    server_args: None,
+    socket_type: None,
+    listen_address: None,
+});
+
 #[test]
 fn config_no_default() {
     assert_eq!(
@@ -202,8 +214,7 @@ fn config_no_default() {
             name: "service_a".to_string(),
             server: "/usr/sbin/service-a".to_string(),
             port: 1234,
-            uid: None,
-            server_args: None
+            ..DEFAULT_SERVICE.clone()
         }]
     );
 }
@@ -215,7 +226,7 @@ fn config_default() {
         server: "/usr/sbin/service-a".to_string(),
         port: 1234,
         uid: Some(42),
-        server_args: None,
+        ..DEFAULT_SERVICE.clone()
     }];
     assert_eq!(
         parse_config_str(PASS_WITH_DEFAULT_UID).unwrap().services(),
@@ -239,6 +250,7 @@ fn config_default_override() {
         port: 1234,
         uid: Some(50),
         server_args: None,
+        ..DEFAULT_SERVICE.clone()
     }];
     assert_eq!(
         parse_config_str(PASS_WITH_DEFAULT_OVERRIDE_UID)
@@ -266,14 +278,14 @@ fn config_multi() {
         server: "/usr/sbin/service-a".to_string(),
         port: 1234,
         uid: Some(42),
-        server_args: None,
+        ..DEFAULT_SERVICE.clone()
     };
     let service_b = Service {
         name: "service_b".to_string(),
         server: "/usr/sbin/service-b".to_string(),
         port: 5678,
         uid: Some(0),
-        server_args: None,
+        ..DEFAULT_SERVICE.clone()
     };
     assert_eq!(
         parse_config_str(PASS_WITH_MULTI_SERVICE1)
