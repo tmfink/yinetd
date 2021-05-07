@@ -1,6 +1,9 @@
 // pest creates enums in all-caps
 #![allow(clippy::upper_case_acronyms)]
 
+#[cfg(test)]
+mod test;
+
 use std::{
     fs::{self, File},
     io::{prelude::*, BufReader},
@@ -38,7 +41,7 @@ fn parse_config_str(config: &str) -> Result<Config> {
                 default_options = ServiceOption::from_service_pair(body_pair)?;
             }
             Rule::service => {
-                let mut service_option = default_options.clone();
+                let mut service_option = ServiceOption::default();
                 let mut pair_inner = pair.clone().into_inner();
 
                 let name_pair = pair_inner.next().unwrap();
@@ -51,6 +54,7 @@ fn parse_config_str(config: &str) -> Result<Config> {
 
                 let body_pair = pair_inner.next().unwrap();
                 service_option.update_from_body_pair(body_pair)?;
+                service_option.fill_with_defaults(&default_options);
 
                 let service = Service::from_optioned(service_option, service_name, &pair)?;
                 config.add_service(service)?;

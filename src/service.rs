@@ -12,6 +12,16 @@ use crate::parse::Rule;
 ///
 /// Fields must implement: [Debug], [Clone], [FromStr].
 macro_rules! define_config {
+    (
+        @fill_defaults_set_fields $self:ident, $default_service:ident, $( $field:ident )*
+    ) => {
+        $(
+            if $self.$field.is_none() {
+                $self.$field = $default_service.$field.clone();
+            }
+        )*
+    };
+
     // update optioned struct based on name and value parse pairs
     (
         @match_field_parse $self:expr, $name_pair:expr, $value_pair:expr, $( $field:ident )*
@@ -20,6 +30,9 @@ macro_rules! define_config {
         match name_str {
             $(
                 stringify!($field) => {
+                    if $self.$field.is_some() {
+                        return Err(crate::Error::duplicate_option(name_str, &$name_pair));
+                    }
                     let value = $value_pair.as_str()
                         .parse()
                         .map_err(|err| {
@@ -83,6 +96,7 @@ macro_rules! define_config {
         }
 
         impl $struct_name {
+            /// Convert from optioned struct. Required fields must be `Some(_)`.
             pub fn from_optioned(opt_struct: $opt_struct_name, service_name: &str, pair: &Pair<Rule>) -> crate::Result<Self> {
                 Ok(Self {
                     name: service_name.to_string(),
@@ -102,6 +116,7 @@ macro_rules! define_config {
         }
 
         impl $opt_struct_name {
+            /// Update field based on pairs
             fn update_config(
                 &mut self,
                 name_pair: Pair<Rule>,
@@ -115,11 +130,15 @@ macro_rules! define_config {
                 Ok(())
             }
 
+            /// For fields that are `None`, set them values defined by the default
+            pub fn fill_with_defaults(&mut self, default_service: &$opt_struct_name) {
+                define_config!( @fill_defaults_set_fields self, default_service, $( $req_field )* $( $opt_field )* );
+            }
         }
     };
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgArgs(Vec<String>);
 
 impl FromStr for ProgArgs {
@@ -133,9 +152,12 @@ impl FromStr for ProgArgs {
 impl ServiceOption {
     pub fn update_from_body_pair(&mut self, body_pair: Pair<Rule>) -> crate::Result<()> {
         assert_eq!(body_pair.as_rule(), Rule::body);
+
         let property_pairs = body_pair.into_inner();
+
         for property_pair in property_pairs {
             assert_eq!(property_pair.as_rule(), Rule::property);
+
             let mut property_inner = property_pair.into_inner();
             let name_pair = property_inner.next().unwrap();
             let value_pair = property_inner.next().unwrap();
@@ -152,7 +174,7 @@ impl ServiceOption {
 }
 
 define_config!(
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Eq, PartialEq)]
     pub struct Service, ServiceOption;
     required {
         pub server: String,

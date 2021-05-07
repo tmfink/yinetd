@@ -39,6 +39,13 @@ pub enum Error {
         #[source]
         context: PestError<Rule>,
     },
+
+    #[error("duplicate option {option:?}")]
+    DuplicateOption {
+        option: String,
+        #[source]
+        context: PestError<Rule>,
+    },
 }
 
 impl Error {
@@ -78,6 +85,15 @@ impl Error {
         let context = custom_pest_error(message, service_pair.as_span());
         Self::DuplicateService {
             service: service_name.to_string(),
+            context,
+        }
+    }
+
+    pub(crate) fn duplicate_option(option_name: &str, option_pair: &Pair<Rule>) -> Self {
+        let message = String::new();
+        let context = custom_pest_error(message, option_pair.as_span());
+        Self::DuplicateOption {
+            option: option_name.to_string(),
             context,
         }
     }
