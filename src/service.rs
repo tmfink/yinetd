@@ -27,7 +27,8 @@ macro_rules! define_config {
 
     // update optioned struct based on name and value parse pairs
     (
-        @match_field_parse $self:expr, $name_pair:expr, $value_pair:expr, $( $field:ident )*
+        @match_field_parse $self:expr, $struct_name:ident, $name_pair:expr,
+        $value_pair:expr, $( $field:ident )*
     ) => {
         let name_str = $name_pair.as_str();
         match name_str {
@@ -47,7 +48,10 @@ macro_rules! define_config {
             _ => {
                 return Err(PestError::new_from_span(
                     PestErrorVariant::CustomError {
-                        message: format!("Invalid key {:?}", name_str),
+                        message: format!(
+                            "Invalid key {:?}. Valid keys: {:?}",
+                            name_str,
+                            $struct_name::VALID_KEYS),
                     },
                     $name_pair.as_span(),
                 ).into());
@@ -62,6 +66,13 @@ macro_rules! define_config {
             $(
                 $( #[$req_field_meta:meta] )*
                 $req_field_vis:vis $req_field:ident : $req_type:ty
+            ),* $(,)?
+        }
+        optional_with_default {
+            //socket_type: SocketType = SocketType::Tcp,
+            $(
+                $( #[$opt_def_field_meta:meta] )*
+                $opt_def_field_vis:vis $opt_def_field:ident : $opt_def_type:ty = $opt_def_value:expr
             ),* $(,)?
         }
         optional {
@@ -80,6 +91,10 @@ macro_rules! define_config {
                 $req_field_vis $req_field: $req_type,
             )*
             $(
+                $( #[$opt_def_field_meta] )*
+                $opt_def_field_vis $opt_def_field: $opt_def_type,
+            )*
+            $(
                 $( #[$opt_field_meta] )*
                 $opt_field_vis $opt_field: Option<$opt_type>,
             )*
@@ -93,12 +108,22 @@ macro_rules! define_config {
                 $req_field_vis $req_field: Option<$req_type>,
             )*
             $(
+                $( #[$opt_def_field_meta] )*
+                $opt_def_field_vis $opt_def_field: Option<$opt_def_type>,
+            )*
+            $(
                 $( #[$opt_field_meta] )*
                 $opt_field_vis $opt_field: Option<$opt_type>,
             )*
         }
 
         impl $struct_name {
+            const VALID_KEYS: &'static [&'static str] = &[
+                $( stringify!($req_field) , )*
+                $( stringify!($opt_def_field) , )*
+                $( stringify!($opt_field) , )*
+            ];
+
             /// Convert from optioned struct. Required fields must be `Some(_)`.
             pub fn from_optioned(opt_struct: $opt_struct_name, service_name: &str, pair: &Pair<Rule>) -> crate::Result<Self> {
                 Ok(Self {
@@ -110,6 +135,11 @@ macro_rules! define_config {
                                 let missing_option = stringify!($req_field);
                                 crate::Error::missing_required_option(missing_option, service_name, pair)
                             })?,
+                    )*
+                    $(
+                        $opt_def_field: opt_struct
+                            .$opt_def_field
+                            .unwrap_or($opt_def_value),
                     )*
                     $(
                         $opt_field: opt_struct.$opt_field,
@@ -128,14 +158,18 @@ macro_rules! define_config {
                 assert_eq!(name_pair.as_rule(), Rule::name);
                 assert_eq!(value_pair.as_rule(), Rule::value);
 
-                define_config!(@match_field_parse self, name_pair, value_pair, $( $req_field )* $( $opt_field )*);
+                define_config!(@match_field_parse
+                    self, $struct_name, name_pair, value_pair,
+                    $( $req_field )* $( $opt_def_field )* $( $opt_field )*);
 
                 Ok(())
             }
 
             /// For fields that are `None`, set them values defined by the default
             pub fn fill_with_defaults(&mut self, default_service: &$opt_struct_name) {
-                define_config!( @fill_defaults_set_fields self, default_service, $( $req_field )* $( $opt_field )* );
+                define_config!(@fill_defaults_set_fields
+                    self, default_service,
+                    $( $req_field )* $( $opt_def_field )* $( $opt_field )* );
             }
         }
     };
@@ -175,18 +209,19 @@ define_config!(
         /// TCP/UDP Port
         pub port: u16,
     }
+    optional_with_default {
+        /// Socket type (i.e., TCP vs. UDP)
+        pub socket_type: SocketType = SocketType::Tcp,
+
+        /// Program arguments
+        pub server_args: ProgArgs = ProgArgs::default(),
+    }
     optional {
         /// User ID to run the process
         pub uid: u32,
 
-        /// Program arguments
-        pub server_args: ProgArgs,
-
         /// IP address to listen on
         /// Defaults to all if not specified
         pub listen_address: IpAddr,
-
-        /// Socket type (i.e., TCP vs. UDP)
-        pub socket_type: SocketType,
     }
 );

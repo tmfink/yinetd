@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use log::debug;
+
 use crate::service::Service;
 
 #[derive(Debug, Default)]
@@ -10,10 +12,7 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        Self {
-            services: Vec::new(),
-            service_names: HashSet::new(),
-        }
+        Default::default()
     }
 
     pub fn has_service(&self, name: &str) -> bool {
@@ -21,6 +20,8 @@ impl Config {
     }
 
     pub fn add_service(&mut self, service: Service) -> crate::Result<()> {
+        debug!("Adding service {:?}", &service);
+
         // We should have already done this check
         assert!(!self.has_service(&service.name));
 

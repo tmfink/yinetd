@@ -1,5 +1,7 @@
 use once_cell::sync::Lazy;
 
+use crate::config_types::SocketType;
+
 use super::*;
 
 const PASS_NO_DEFAULT: &str = r#"
@@ -114,6 +116,27 @@ service service_b
 }
 "#;
 
+const PASS_SOCKET_DEFAULT_UDP: &str = r#"
+default {
+    uid = 42
+    socket_type = udp
+}
+
+service service_a
+{
+    server = /usr/sbin/service-a
+    port = 1234
+}
+
+service service_b
+{
+    server = /usr/sbin/service-b
+    port = 5678
+    socket_type = tcp
+    uid = 0
+}
+"#;
+
 const FAIL_MISSING_REQUIRED_OPTION: &str = r#"
 service service_a
 {
@@ -201,8 +224,8 @@ static DEFAULT_SERVICE: Lazy<Service> = Lazy::new(|| Service {
     server: "".to_string(),
     port: 0,
     uid: None,
-    server_args: None,
-    socket_type: None,
+    server_args: Default::default(),
+    socket_type: SocketType::Tcp,
     listen_address: None,
 });
 
@@ -249,7 +272,6 @@ fn config_default_override() {
         server: "/usr/sbin/service-a".to_string(),
         port: 1234,
         uid: Some(50),
-        server_args: None,
         ..DEFAULT_SERVICE.clone()
     }];
     assert_eq!(
@@ -300,6 +322,18 @@ fn config_multi() {
         &[
             Service {
                 port: 39847,
+                ..service_a.clone()
+            },
+            service_b.clone()
+        ]
+    );
+    assert_eq!(
+        parse_config_str(PASS_SOCKET_DEFAULT_UDP)
+            .unwrap()
+            .services(),
+        &[
+            Service {
+                socket_type: SocketType::Udp,
                 ..service_a
             },
             service_b
