@@ -1,6 +1,11 @@
+use std::net::IpAddr;
+
 use once_cell::sync::Lazy;
 
-use crate::config_types::SocketType;
+use crate::{
+    config_types::{InetType, SocketType},
+    Error,
+};
 
 use super::*;
 
@@ -219,12 +224,33 @@ service service_a
 }
 "#;
 
+const FAIL_MISMACH_EXPECT_IPV4: &str = r#"
+service service_a
+{
+    server = server
+    port = 1234
+    listen_address = fe80::1
+    inet_type = ipv4
+}
+"#;
+
+const FAIL_MISMACH_EXPECT_IPV6: &str = r#"
+service service_a
+{
+    server = server
+    port = 1234
+    listen_address = 127.0.0.1
+    inet_type = ipv6
+}
+"#;
+
 static DEFAULT_SERVICE: Lazy<Service> = Lazy::new(|| Service {
     name: "".to_string(),
     server: "".to_string(),
     port: 0,
     uid: None,
     server_args: Default::default(),
+    inet_type: InetType::Ipv4,
     socket_type: SocketType::Tcp,
     listen_address: None,
 });
@@ -391,6 +417,44 @@ fn config_invalid_option() {
     let err = parse_config_str(FAIL_BAD_OPTION_UID).unwrap_err();
     match err {
         crate::Error::OptionValueParse { context: _, option } => assert_eq!(&option, "uid"),
+        _ => panic!("wrong error: {}", err),
+    }
+}
+
+#[test]
+fn mismatch_inet_type() {
+    let expected_service_name = "service_a";
+
+    let config = &parse_config_str(FAIL_MISMACH_EXPECT_IPV4).unwrap();
+    let service = &config.services()[0];
+    let err = service.socket_addr().unwrap_err();
+    match err {
+        Error::InetVersionAddressMismatch {
+            expected_type,
+            addr,
+            service_name,
+        } => {
+            assert_eq!(expected_type, InetType::Ipv4);
+            assert_eq!(addr, "fe80::1".parse::<IpAddr>().unwrap());
+            assert_eq!(service_name, expected_service_name);
+        }
+        _ => panic!("wrong error: {}", err),
+    }
+
+    let config = &parse_config_str(FAIL_MISMACH_EXPECT_IPV6).unwrap();
+    let service = &config.services()[0];
+    dbg!(service);
+    let err = service.socket_addr().unwrap_err();
+    match err {
+        Error::InetVersionAddressMismatch {
+            expected_type,
+            addr,
+            service_name,
+        } => {
+            assert_eq!(expected_type, InetType::Ipv6);
+            assert_eq!(addr, "127.0.0.1".parse::<IpAddr>().unwrap());
+            assert_eq!(service_name, expected_service_name);
+        }
         _ => panic!("wrong error: {}", err),
     }
 }

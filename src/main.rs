@@ -36,6 +36,7 @@ fn init_logging(verbosity: i32) {
     let level = filters[verbosity_idx];
 
     let mut builder = env_logger::Builder::from_env(LOG_ENV);
+    builder.target(env_logger::Target::Stderr);
     builder.filter_level(level);
     builder.init();
 }
@@ -65,14 +66,14 @@ fn main() -> anyhow::Result<()> {
 
     let config_path = config_path(&opts)?;
     info!("config: {:?}", &config_path);
-    parse_config_file(&config_path)?;
+    let config = parse_config_file(&config_path)?;
 
     if opts.check_config {
         info!("Exiting after checking config");
         return Ok(());
     }
 
-    // todo(tmfink): start services
+    yinetd::serve_forever(&config)?;
 
-    unimplemented!("Starting services not implemented");
+    Ok(())
 }

@@ -1,6 +1,7 @@
 use std::{
     fmt::{Debug, Display},
     io,
+    net::IpAddr,
 };
 
 use pest::error::Error as PestError;
@@ -8,12 +9,23 @@ use pest::error::ErrorVariant as PestErrorVariant;
 use pest::{iterators::Pair, Span};
 use thiserror::Error;
 
-use crate::parse::Rule;
+use crate::{config_types::InetType, parse::Rule};
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("{message}: {source}")]
+    Io {
+        message: String,
+        #[source]
+        source: io::Error,
+    },
+
     #[error("failed to read config")]
-    Config(#[from] io::Error),
+    Config {
+        message: String,
+        #[source]
+        source: io::Error,
+    },
 
     #[error("failed to parse config")]
     Parse(#[from] PestError<Rule>),
@@ -45,6 +57,13 @@ pub enum Error {
         option: String,
         #[source]
         context: PestError<Rule>,
+    },
+
+    #[error("expected {expected_type} address, found {addr} for service {service_name:?}")]
+    InetVersionAddressMismatch {
+        expected_type: InetType,
+        addr: IpAddr,
+        service_name: String,
     },
 }
 
@@ -103,4 +122,26 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 pub(crate) fn custom_pest_error(message: String, span: Span) -> PestError<Rule> {
     PestError::new_from_span(PestErrorVariant::CustomError { message }, span)
+}
+
+pub trait StdIoErrorExt {
+    type Into;
+    fn with_message(self, message: impl Into<String>) -> Self::Into;
+}
+
+impl StdIoErrorExt for std::io::Error {
+    type Into = Error;
+    fn with_message(self, message: impl Into<String>) -> Self::Into {
+        Error::Io {
+            message: message.into(),
+            source: self,
+        }
+    }
+}
+
+impl<T> StdIoErrorExt for std::io::Result<T> {
+    type Into = Result<T>;
+    fn with_message(self, message: impl Into<String>) -> Self::Into {
+        self.map_err(|err| err.with_message(message))
+    }
 }

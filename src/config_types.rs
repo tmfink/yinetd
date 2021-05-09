@@ -1,7 +1,10 @@
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ProgArgs(Vec<String>);
+pub struct ProgArgs(pub Vec<String>);
 
 impl FromStr for ProgArgs {
     type Err = &'static str;
@@ -27,6 +30,35 @@ impl FromStr for SocketType {
             "tcp" | "stream" => Ok(Self::Tcp),
             "udp" | "dgram" => Ok(Self::Udp),
             _ => Err("Invalid input: must be tcp|udp (or alises stream|dgram)"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InetType {
+    /// IPv4
+    Ipv4,
+
+    /// IPv6
+    Ipv6,
+}
+
+impl FromStr for InetType {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ipv4" => Ok(Self::Ipv4),
+            "ipv6" => Ok(Self::Ipv6),
+            _ => Err("Invalid input: must be ipv4|ipv6"),
+        }
+    }
+}
+
+impl Display for InetType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ipv4 => write!(f, "IPv4"),
+            Self::Ipv6 => write!(f, "IPv6"),
         }
     }
 }
@@ -65,5 +97,14 @@ mod test {
                 "with quotes".to_string(),
             ]))
         );
+    }
+
+    #[test]
+    fn inet_type() {
+        assert_eq!("ipv4".parse::<InetType>(), Ok(InetType::Ipv4));
+        assert_eq!("IPv4".parse::<InetType>(), Ok(InetType::Ipv4));
+        assert_eq!("ipv6".parse::<InetType>(), Ok(InetType::Ipv6));
+        assert_eq!("IPv6".parse::<InetType>(), Ok(InetType::Ipv6));
+        assert!("IPv99".parse::<InetType>().is_err());
     }
 }

@@ -1,12 +1,13 @@
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use pest::error::Error as PestError;
 use pest::error::ErrorVariant as PestErrorVariant;
 use pest::iterators::Pair;
 
 use crate::{
-    config_types::{ProgArgs, SocketType},
+    config_types::{InetType, ProgArgs, SocketType},
     parse::Rule,
+    Error,
 };
 
 /// Define two structs that will hold config:
@@ -175,6 +176,42 @@ macro_rules! define_config {
     };
 }
 
+impl Service {
+    pub fn socket_addr(&self) -> crate::Result<SocketAddr> {
+        let mismatch_err = |addr| {
+            Err(Error::InetVersionAddressMismatch {
+                addr,
+                expected_type: self.inet_type,
+                service_name: self.name.to_string(),
+            })
+        };
+        let inet_addr: IpAddr = match self.inet_type {
+            InetType::Ipv4 => {
+                if let Some(addr) = self.listen_address {
+                    if !addr.is_ipv4() {
+                        return mismatch_err(addr);
+                    }
+                    addr
+                } else {
+                    Ipv4Addr::UNSPECIFIED.into()
+                }
+            }
+            InetType::Ipv6 => {
+                if let Some(addr) = self.listen_address {
+                    if !addr.is_ipv6() {
+                        return mismatch_err(addr);
+                    }
+                    addr
+                } else {
+                    Ipv4Addr::UNSPECIFIED.into()
+                }
+            }
+        };
+
+        Ok((inet_addr, self.port).into())
+    }
+}
+
 impl ServiceOption {
     pub fn update_from_body_pair(&mut self, body_pair: Pair<Rule>) -> crate::Result<()> {
         assert_eq!(body_pair.as_rule(), Rule::body);
@@ -212,6 +249,9 @@ define_config!(
     optional_with_default {
         /// Socket type (i.e., TCP vs. UDP)
         pub socket_type: SocketType = SocketType::Tcp,
+
+        /// Inet (i.e., IPv4 vs. IPv6)
+        pub inet_type: InetType = InetType::Ipv4,
 
         /// Program arguments
         pub server_args: ProgArgs = ProgArgs::default(),

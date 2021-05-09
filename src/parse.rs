@@ -17,7 +17,7 @@ use pest_derive::Parser;
 use crate::{
     config::Config,
     service::{Service, ServiceOption},
-    Result,
+    Error, Result,
 };
 
 #[derive(Parser)]
@@ -72,11 +72,24 @@ fn parse_config_str(config: &str) -> Result<Config> {
 
 pub fn parse_config_file<P: AsRef<Path>>(path: P) -> Result<Config> {
     let path: &Path = path.as_ref();
-    let file = File::open(path)?;
+    let file = File::open(path).map_err(|err| Error::Config {
+        message: "failed to open config".to_string(),
+        source: err,
+    })?;
     let mut buf_reader = BufReader::new(file);
-    let file_len = fs::metadata(path)?.len();
+    let file_len = fs::metadata(path)
+        .map_err(|err| Error::Config {
+            message: "failed read config file metadata".to_string(),
+            source: err,
+        })?
+        .len();
     let mut contents = String::with_capacity(file_len as usize);
-    buf_reader.read_to_string(&mut contents)?;
+    buf_reader
+        .read_to_string(&mut contents)
+        .map_err(|err| Error::Config {
+            message: "failed to read config file".to_string(),
+            source: err,
+        })?;
 
     parse_config_str(&contents)
 }
