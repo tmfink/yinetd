@@ -73,7 +73,10 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    yinetd::serve_forever(&config)?;
+    for service in config.services() {
+        println!("{:#?}", service);
+    }
+    yinetd::serve_forever(config)?;
 
     Ok(())
 }
