@@ -39,9 +39,6 @@ pub fn serve_forever(config: &Config) -> crate::Result<()> {
         .with_message("failed to registry mio listener")?;
 
     // Map of `Token` -> `TcpStream`.
-    //let mut connections = HashMap::new();
-    // Unique token for each incoming connection.
-    //let unique_token = Token(SERVER.0 + 1);
     let mut child_procs: Vec<Child> = Vec::new();
 
     // Wait for the socket to become ready. This has to happens in a loop to
@@ -55,7 +52,10 @@ pub fn serve_forever(config: &Config) -> crate::Result<()> {
                 SERVER if event.is_readable() => loop {
                     match tcp_listener.accept() {
                         Ok((client_connection, client_addr)) => {
-                            debug!("Got connection from {}", client_addr);
+                            debug!(
+                                "Got connection from {} for service {:?}",
+                                client_addr, service
+                            );
                             match handle_new_connection(client_connection, service) {
                                 Ok(child) => {
                                     child_procs.push(child);
@@ -77,7 +77,6 @@ pub fn serve_forever(config: &Config) -> crate::Result<()> {
 }
 
 fn handle_new_connection(connection: TcpStream, service: &Service) -> crate::Result<Child> {
-    debug!("Handling connection for service {:?}", service.name);
     let mut cmd = Command::new(&service.server);
     cmd.args(&service.server_args.0);
     unsafe {
@@ -86,10 +85,10 @@ fn handle_new_connection(connection: TcpStream, service: &Service) -> crate::Res
             let sock_fd = connection.as_raw_fd();
 
             dup2(sock_fd, io::stdin().as_raw_fd()).expect("Failed to dup2() stdin in child");
-            debug!("dup'd child stdin");
+            trace!("dup'd child stdin");
 
             dup2(sock_fd, io::stdout().as_raw_fd()).expect("Failed to dup2() stdout in child");
-            debug!("dup'd child stdout");
+            trace!("dup'd child stdout");
 
             Ok(())
         });
