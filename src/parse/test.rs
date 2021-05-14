@@ -458,3 +458,5 @@ fn mismatch_inet_type() {
         _ => panic!("wrong error: {}", err),
     }
 }
+
+// todo(tmfink): test re-used ports
