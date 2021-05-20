@@ -3,6 +3,7 @@ use std::{
     net::SocketAddr,
     os::unix::{io::AsRawFd, process::CommandExt},
     process::{Child, Command},
+    time::Duration,
 };
 
 use log::trace;
@@ -11,20 +12,17 @@ use nix::unistd::dup2;
 
 use crate::{config::Config, config_types::SocketType, error::StdIoErrorExt, service::Service};
 
+mod service_state;
 mod tcp;
 mod udp;
 
+use service_state::ServiceState;
+
 const EVENTS_CAPACITY: usize = 1024;
+const MAX_WAIT: Duration = Duration::from_millis(100);
 
-trait ProtoBinder: mio::event::Source + AsRawFd + Sized {
+pub(crate) trait ProtoBinder: mio::event::Source + AsRawFd + Sized {
     fn bind_proto(addr: SocketAddr) -> std::io::Result<Self>;
-}
-
-struct ServiceState<'a, P: ProtoBinder> {
-    // todo(tmfink): reap child processes
-    child_procs: Vec<Child>,
-    service: &'a Service,
-    proto_binder: P,
 }
 
 struct ProtoServerState<'a, P: ProtoBinder> {
@@ -32,6 +30,12 @@ struct ProtoServerState<'a, P: ProtoBinder> {
     service_states: Vec<ServiceState<'a, P>>,
     poll: Poll,
     events: Events,
+}
+
+pub(crate) fn try_reap_children<P: ProtoBinder>(service_states: &mut Vec<ServiceState<'_, P>>) {
+    for service_state in service_states.iter_mut() {
+        service_state.try_reap_children();
+    }
 }
 
 fn create_server_state<P: ProtoBinder>(config: &Config) -> crate::Result<ProtoServerState<P>> {
@@ -55,12 +59,7 @@ fn create_server_state<P: ProtoBinder>(config: &Config) -> crate::Result<ProtoSe
                 service.name
             ))?;
 
-        let child_procs = Vec::new();
-        service_states.push(ServiceState {
-            child_procs,
-            service,
-            proto_binder,
-        })
+        service_states.push(ServiceState::new(service, proto_binder));
     }
 
     Ok(ProtoServerState {
