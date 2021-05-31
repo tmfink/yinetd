@@ -81,20 +81,20 @@ fn handle_new_connection<C: AsRawFd>(connection: C, service: &Service) -> crate:
     cmd.args(&service.server_args.0);
     unsafe {
         cmd.pre_exec(move || {
-            // dup the socket with stdin/stdout
-
             trace!("in child");
 
-            dup2(sock_fd, io::stdin().as_raw_fd()).expect("Failed to dup2() stdin in child");
-            trace!("dup'd child stdin");
-
-            dup2(sock_fd, io::stdout().as_raw_fd()).expect("Failed to dup2() stdout in child");
-            trace!("dup'd child stdout");
+            // dup stdin/out/err to socket
+            for fd in [libc::STDIN_FILENO, libc::STDOUT_FILENO, libc::STDERR_FILENO] {
+                match dup2(sock_fd, fd) {
+                    Err(err) => panic!("Failed to dup2() fd {} as socket fd: {}", fd, err),
+                    Ok(_) => {}
+                }
+                trace!("dup'd child fd {} to socket fd", fd);
+            }
 
             Ok(())
         });
     }
-    // todo(tmfink): why does this fail?
     let child = cmd.spawn().with_message("failed to spawn child process")?;
 
     Ok(child)

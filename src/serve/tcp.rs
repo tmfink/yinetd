@@ -23,8 +23,13 @@ pub fn serve_tcp_forever(config: Config) -> crate::Result<()> {
     }: ProtoServerState<TcpListener> = create_server_state(&config)?;
 
     loop {
-        poll.poll(&mut events, Some(MAX_WAIT))
-            .with_message("mio poll failed")?;
+        match poll.poll(&mut events, Some(MAX_WAIT)) {
+            Ok(_) => {}
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::Interrupted => debug!("mio poll interrupted: {}", err),
+                _ => return Err(err).with_message("mio poll failed")?,
+            },
+        }
 
         try_reap_children(&mut service_states);
 
