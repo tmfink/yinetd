@@ -84,12 +84,7 @@ fn handle_new_connection<C: AsRawFd>(connection: C, service: &Service) -> crate:
             trace!("in child");
 
             // dup stdin/out/err to socket
-            for fd in [
-                libc::STDIN_FILENO,
-                libc::STDOUT_FILENO,
-            ]
-            .iter()
-            {
+            for fd in [libc::STDIN_FILENO, libc::STDOUT_FILENO].iter() {
                 if let Err(err) = dup2(sock_fd, *fd) {
                     panic!("Failed to dup2() fd {} as socket fd: {}", fd, err);
                 }
