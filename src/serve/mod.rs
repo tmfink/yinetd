@@ -94,7 +94,15 @@ fn handle_new_connection<C: AsRawFd>(connection: C, service: &Service) -> crate:
             Ok(())
         });
     }
-    let child = cmd.spawn().with_message("failed to spawn child process")?;
+    let child = match cmd.spawn() {
+        Ok(child) => child,
+        Err(err) => {
+            return Err(err.with_message(format!(
+                "failed to spawn child process executable {:?}",
+                service.server
+            )))
+        }
+    };
 
     Ok(child)
 }
