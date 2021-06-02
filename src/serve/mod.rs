@@ -74,6 +74,17 @@ pub fn serve_forever(config: Config) -> crate::Result<()> {
     // todo(tmfink): handle other protocols
 }
 
+fn make_fd_blocking(fd: libc::c_int) {
+    let fd_flag_bits = nix::fcntl::fcntl(fd, nix::fcntl::FcntlArg::F_GETFL).unwrap();
+    let mut fd_flags = nix::fcntl::OFlag::from_bits(fd_flag_bits).unwrap();
+    trace!("fd {} old flags: {:?}", fd, fd_flags);
+
+    fd_flags.remove(nix::fcntl::OFlag::O_NONBLOCK);
+    trace!("fd {} new flags: {:?}", fd, fd_flags);
+
+    nix::fcntl::fcntl(fd, nix::fcntl::FcntlArg::F_SETFL(fd_flags)).unwrap();
+}
+
 fn handle_new_connection<C: AsRawFd>(connection: C, service: &Service) -> crate::Result<Child> {
     let sock_fd = connection.as_raw_fd();
 
@@ -84,11 +95,14 @@ fn handle_new_connection<C: AsRawFd>(connection: C, service: &Service) -> crate:
             trace!("in child");
 
             // dup stdin/out/err to socket
-            for fd in [libc::STDIN_FILENO, libc::STDOUT_FILENO].iter() {
-                if let Err(err) = dup2(sock_fd, *fd) {
+            for &fd in [libc::STDIN_FILENO, libc::STDOUT_FILENO].iter() {
+                if let Err(err) = dup2(sock_fd, fd) {
                     panic!("Failed to dup2() fd {} as socket fd: {}", fd, err);
                 }
                 trace!("dup'd child fd {} to socket fd", fd);
+
+                // after duping the socket, the fd will inherit non-blocking from the listener socket
+                make_fd_blocking(fd);
             }
 
             Ok(())
