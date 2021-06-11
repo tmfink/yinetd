@@ -91,5 +91,5 @@ pub fn parse_config_file<P: AsRef<Path>>(path: P) -> Result<Config> {
             source: err,
         })?;
 
-    parse_config_str(&contents)
+    parse_config_str(&contents).map_err(|err| err.with_path(&path.to_string_lossy()))
 }

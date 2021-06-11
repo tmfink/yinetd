@@ -116,6 +116,35 @@ impl Error {
             context,
         }
     }
+
+    /// Add path context to Pest errors
+    pub(crate) fn with_path(self, path: &str) -> Self {
+        match self {
+            Self::Parse(pest_err) => Self::Parse(pest_err.with_path(path)),
+            Self::OptionValueParse { option, context } => Self::OptionValueParse {
+                option,
+                context: context.with_path(path),
+            },
+            Self::MissingRequiredOption {
+                option,
+                service,
+                context,
+            } => Self::MissingRequiredOption {
+                option,
+                service,
+                context: context.with_path(path),
+            },
+            Self::DuplicateService { service, context } => Self::DuplicateService {
+                service,
+                context: context.with_path(path),
+            },
+            Self::DuplicateOption { option, context } => Self::DuplicateOption {
+                option,
+                context: context.with_path(path),
+            },
+            _ => return self,
+        }
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
