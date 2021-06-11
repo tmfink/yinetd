@@ -4,6 +4,11 @@
 
 An [inetd][inetd] implementation in the [Rust language][rust-lang].
 
+# Stability
+
+*Caution*:
+This project is under development and absolutely not ready for production.
+
 [inetd]: https://en.wikipedia.org/wiki/Inetd
 [rust-lang]: https://www.rust-lang.org/
 
