@@ -49,7 +49,7 @@ fn parse_config_str(config: &str) -> Result<Config> {
                 let service_name = name_pair.as_str();
 
                 if config.has_service(service_name) {
-                    return Err(crate::Error::duplicate_service(&service_name, &pair));
+                    return Err(crate::Error::duplicate_service(service_name, &pair));
                 }
 
                 let body_pair = pair_inner.next().unwrap();

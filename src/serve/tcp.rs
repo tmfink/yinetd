@@ -49,7 +49,7 @@ pub fn serve_tcp_forever(config: Config) -> crate::Result<()> {
                     "Got connection from {} for service {:?}",
                     client_addr, service_state.service.name
                 );
-                match handle_new_connection(client_connection, &service_state.service) {
+                match handle_new_connection(client_connection, service_state.service) {
                     Ok(child) => {
                         service_state.add_child(child);
                     }

@@ -142,7 +142,7 @@ impl Error {
                 option,
                 context: context.with_path(path),
             },
-            _ => return self,
+            _ => self,
         }
     }
 }
