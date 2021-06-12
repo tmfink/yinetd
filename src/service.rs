@@ -1,4 +1,4 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use pest::error::Error as PestError;
 use pest::error::ErrorVariant as PestErrorVariant;
@@ -203,7 +203,7 @@ impl Service {
                     }
                     addr
                 } else {
-                    Ipv4Addr::UNSPECIFIED.into()
+                    Ipv6Addr::UNSPECIFIED.into()
                 }
             }
         };

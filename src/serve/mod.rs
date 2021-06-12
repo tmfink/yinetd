@@ -48,7 +48,7 @@ fn create_server_state<P: ProtoBinder>(config: &Config) -> crate::Result<ProtoSe
         assert_eq!(service.socket_type, SocketType::Tcp);
 
         let addr: SocketAddr = service.socket_addr()?;
-        let mut proto_binder = P::bind_proto(addr).with_message("failed to open config")?;
+        let mut proto_binder = P::bind_proto(addr).with_message("failed to bind to interface")?;
         // Use index in service state as the token
         let token = Token(service_states.len());
 

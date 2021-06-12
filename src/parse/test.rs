@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use once_cell::sync::Lazy;
 
@@ -139,6 +139,24 @@ service service_b
     port = 5678
     socket_type = tcp
     uid = 0
+}
+"#;
+
+const PASS_DEFAULT_ADDRESS_IPV4: &str = r#"
+service service_a
+{
+    server = server
+    port = 1234
+    inet_type = ipv4
+}
+"#;
+
+const PASS_DEFAULT_ADDRESS_IPV6: &str = r#"
+service service_a
+{
+    server = server
+    port = 1234
+    inet_type = ipv6
 }
 "#;
 
@@ -364,6 +382,23 @@ fn config_multi() {
             },
             service_b
         ]
+    );
+}
+
+#[test]
+fn default_listen_addr() {
+    let config_ipv4 = parse_config_str(PASS_DEFAULT_ADDRESS_IPV4).unwrap();
+    let service_ipv4 = &config_ipv4.services()[0];
+    assert_eq!(
+        service_ipv4.socket_addr().unwrap().ip(),
+        Ipv4Addr::UNSPECIFIED
+    );
+
+    let config_ipv6 = parse_config_str(PASS_DEFAULT_ADDRESS_IPV6).unwrap();
+    let service_ipv6 = &config_ipv6.services()[0];
+    assert_eq!(
+        service_ipv6.socket_addr().unwrap().ip(),
+        Ipv6Addr::UNSPECIFIED
     );
 }
 
