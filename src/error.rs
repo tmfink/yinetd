@@ -9,7 +9,7 @@ use pest::error::ErrorVariant as PestErrorVariant;
 use pest::{iterators::Pair, Span};
 use thiserror::Error;
 
-use crate::{config_types::InetType, parse::Rule};
+use crate::config::{parse::Rule, InetType};
 
 #[derive(Error, Debug)]
 pub enum Error {

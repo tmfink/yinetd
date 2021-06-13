@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use clap::Clap;
 use log::*;
 
-use yinetd::parse::parse_config_file;
+use yinetd::config::parse::parse_config_file;
 
 const LOG_ENV: &str = "YINETD_LOG";
 

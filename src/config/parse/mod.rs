@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(Parser)]
-#[grammar = "config_grammar.pest"]
+#[grammar = "config/config_grammar.pest"]
 struct ConfigParser;
 
 fn parse_config_str(config: &str) -> Result<Config> {

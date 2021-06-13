@@ -4,6 +4,11 @@ use log::debug;
 
 use crate::service::Service;
 
+mod config_types;
+pub mod parse;
+
+pub use config_types::*;
+
 #[derive(Debug, Default)]
 pub struct Config {
     services: Vec<Service>,

@@ -5,8 +5,7 @@ use pest::error::ErrorVariant as PestErrorVariant;
 use pest::iterators::Pair;
 
 use crate::{
-    config_types::{InetType, ProgArgs, SocketType},
-    parse::Rule,
+    config::{parse::Rule, InetType, ProgArgs, SocketType},
     Error,
 };
 

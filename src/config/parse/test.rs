@@ -3,7 +3,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use once_cell::sync::Lazy;
 
 use crate::{
-    config_types::{InetType, SocketType},
+    config::config_types::{InetType, SocketType},
     Error,
 };
 

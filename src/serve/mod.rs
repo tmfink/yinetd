@@ -10,7 +10,11 @@ use log::trace;
 use mio::{event::Events, Interest, Poll, Token};
 use nix::unistd::dup2;
 
-use crate::{config::Config, config_types::SocketType, error::StdIoErrorExt, service::Service};
+use crate::{
+    config::{Config, SocketType},
+    error::StdIoErrorExt,
+    service::Service,
+};
 
 mod service_state;
 mod tcp;
