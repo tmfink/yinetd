@@ -42,7 +42,7 @@ pub(crate) fn try_reap_children<P: ProtoBinder>(service_states: &mut Vec<Service
     }
 }
 
-fn create_server_state<P: ProtoBinder>(config: &Config) -> crate::Result<ProtoServerState<P>> {
+fn create_server_state<P: ProtoBinder>(config: &Config) -> crate::Result<ProtoServerState<'_, P>> {
     let poll = Poll::new().with_message("failed to create mio::Poll")?;
     let events = Events::with_capacity(EVENTS_CAPACITY);
 
